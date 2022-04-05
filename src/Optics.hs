@@ -1,32 +1,54 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 module Optics where
 
+import Affine
 import Associativity
+import ConstOp
+import Morph
+import PowerSeries
+import TypeTuples
 
 -- base
-import Control.Applicative (Const(..))
+import Data.Bifunctor
 import Data.Tuple (swap)
+
+-- constraints
+import Data.Constraint (Dict)
 
 -- GENERAL OPTICS
 
 data Optic f s t a b = forall c. Optic (s -> f c a) (f c b -> t)
 
-compose :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
+morph :: Morph f g => Optic f s t a b -> Optic g s t a b
+morph (Optic f g) = Optic (f2g . f) (g . g2f)
+
+class C f a b c => Constrainer f a b c
+instance C f a b c => Constrainer f a b c
+
+compose :: (ExistentiallyAssociative f, forall x. Functor (f x), forall c c1. Constrainer f c c1 a, forall c c1. Constrainer f c c1 b) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
 compose (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
+
+(%) :: (ExistentiallyAssociative h, forall x. Functor (h x), Morph f h, Morph g h, forall c c1. Constrainer h c c1 a, forall c c1. Constrainer h c c1 b) => Optic f s t u v -> Optic g u v a b -> Optic h s t a b
+(%) opticF opticG = compose (morph opticF) (morph opticG)
 
 -- ISOS
 
-type Iso s a = Optic Const s s a a
+type Iso = Optic ConstOp
 
-swapped :: Iso (a, b) (b, a)
-swapped = Optic Const getConst
+type Iso' s a = Iso s s a a
+
+swapped :: Iso' (a, b) (b, a)
+swapped = Optic (ConstOp . swap) (swap. getConstOp)
 
 -- LENSES
 
@@ -62,24 +84,11 @@ type Grate = Optic (->)
 
 -- AFFINE TRAVERSALS
 
-type family Fst (a :: (k1, k2)) where
-  Fst '(x, y) = x
-
-type family Snd (a :: (k1, k2)) where
-  Snd '(x, y) = y
-
-newtype Affine a b = Affine (Either (Fst a) (Snd a, b))
-  deriving Functor
-
--- possible alternative definition
---
--- data Affine a b where
---   Affine :: a ~ (a0, a1) => Either a0 (a1, b) -> Affine a b
-
 type AffineAssociated a b = '(Affine a (Fst b), (Snd a, Snd b))
 
 instance ExistentiallyAssociative Affine where
   type E Affine a b = AffineAssociated a b
+  type C Affine a b c = ()
 
   existentialAssociateL :: Affine a (Affine b c) -> Affine (AffineAssociated a b) c
   existentialAssociateL (Affine (Left a0))                            = Affine (Left (Affine (Left a0)))
@@ -92,3 +101,16 @@ instance ExistentiallyAssociative Affine where
   existentialAssociateR (Affine (Right ((a1, b1), c)))            = Affine (Right (a1, Affine (Right (b1, c))))
 
 type AffineTraversal = Optic Affine
+
+-- TRAVERSALS
+
+instance ExistentiallyAssociative PowerSeries where
+  type E PowerSeries a b = PowerSeries a b
+  type C PowerSeries a b c = Semigroup c
+
+  existentialAssociateL :: Semigroup c => PowerSeries a (PowerSeries b c) -> PowerSeries (PowerSeries a b) c
+  existentialAssociateL (Const a)           = Const (Const a)
+  existentialAssociateL (Poly psapsbc psbc) = actionProduct (\ps b -> _wB) (existentialAssociateL psapsbc) psbc
+
+  existentialAssociateR :: PowerSeries (PowerSeries a b) c -> PowerSeries a (PowerSeries b c)
+  existentialAssociateR ps = _

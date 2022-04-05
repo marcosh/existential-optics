@@ -1,16 +1,35 @@
+{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Associativity where
 
+import ConstOp
+
+-- base
+import Data.Kind (Constraint)
+
 class ExistentiallyAssociative (f :: k -> * -> *) where
   type E f (a :: k) (b :: k) :: k
-  existentialAssociateL :: f a (f b c) -> f (E f a b) c
-  existentialAssociateR :: f (E f a b) c -> f a (f b c)
+  type C f (a :: k) (b :: k) c :: Constraint
+
+  existentialAssociateL :: C f a b c => f a (f b c) -> f (E f a b) c
+  existentialAssociateR :: C f a b c => f (E f a b) c -> f a (f b c)
+
+instance ExistentiallyAssociative ConstOp where
+  type E ConstOp a b = ()
+  type C ConstOp a b c = ()
+
+  existentialAssociateL :: ConstOp a (ConstOp b c) -> ConstOp () c
+  existentialAssociateL (ConstOp (ConstOp c)) = ConstOp c
+
+  existentialAssociateR :: ConstOp () c -> ConstOp a (ConstOp b c)
+  existentialAssociateR (ConstOp c) = ConstOp (ConstOp c)
 
 instance ExistentiallyAssociative (,) where
   type E (,) a b = (a, b)
+  type C (,) a b c = ()
 
   existentialAssociateL :: (a, (b, c)) -> ((a, b), c)
   existentialAssociateL (a, (b, c)) = ((a, b), c)
@@ -20,6 +39,7 @@ instance ExistentiallyAssociative (,) where
 
 instance ExistentiallyAssociative Either where
   type E Either a b = Either a b
+  type C Either a b c = ()
 
   existentialAssociateL :: Either a (Either b c) -> Either (Either a b) c
   existentialAssociateL (Left a)          = Left (Left a)
@@ -33,6 +53,7 @@ instance ExistentiallyAssociative Either where
 
 instance ExistentiallyAssociative (->) where
   type E (->) a b = (a, b)
+  type C (->) a b c = ()
 
   existentialAssociateL :: (a -> (b -> c)) -> ((a, b) -> c)
   existentialAssociateL = uncurry
