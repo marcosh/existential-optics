@@ -32,13 +32,10 @@ data Optic f s t a b = forall c. Optic (s -> f c a) (f c b -> t)
 morph :: Morph f g => Optic f s t a b -> Optic g s t a b
 morph (Optic f g) = Optic (f2g . f) (g . g2f)
 
-class C f a b c => Constrainer f a b c
-instance C f a b c => Constrainer f a b c
-
-compose :: (ExistentiallyAssociative f, forall x. Functor (f x), forall c c1. Constrainer f c c1 a, forall c c1. Constrainer f c c1 b) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
+compose :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
 compose (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
 
-(%) :: (ExistentiallyAssociative h, forall x. Functor (h x), Morph f h, Morph g h, forall c c1. Constrainer h c c1 a, forall c c1. Constrainer h c c1 b) => Optic f s t u v -> Optic g u v a b -> Optic h s t a b
+(%) :: (ExistentiallyAssociative h, forall x. Functor (h x), Morph f h, Morph g h) => Optic f s t u v -> Optic g u v a b -> Optic h s t a b
 (%) opticF opticG = compose (morph opticF) (morph opticG)
 
 -- ISOS
@@ -88,7 +85,6 @@ type AffineAssociated a b = '(Affine a (Fst b), (Snd a, Snd b))
 
 instance ExistentiallyAssociative Affine where
   type E Affine a b = AffineAssociated a b
-  type C Affine a b c = ()
 
   existentialAssociateL :: Affine a (Affine b c) -> Affine (AffineAssociated a b) c
   existentialAssociateL (Affine (Left a0))                            = Affine (Left (Affine (Left a0)))
@@ -104,13 +100,13 @@ type AffineTraversal = Optic Affine
 
 -- TRAVERSALS
 
-instance ExistentiallyAssociative PowerSeries where
-  type E PowerSeries a b = PowerSeries a b
-  type C PowerSeries a b c = Semigroup c
+-- instance ExistentiallyAssociative PowerSeries where
+--   type E PowerSeries a b = PowerSeries a b
+--   type C PowerSeries a b c = Semigroup c
 
-  existentialAssociateL :: Semigroup c => PowerSeries a (PowerSeries b c) -> PowerSeries (PowerSeries a b) c
-  existentialAssociateL (Const a)           = Const (Const a)
-  existentialAssociateL (Poly psapsbc psbc) = actionProduct (\ps b -> _wB) (existentialAssociateL psapsbc) psbc
+--   existentialAssociateL :: Semigroup c => PowerSeries a (PowerSeries b c) -> PowerSeries (PowerSeries a b) c
+--   existentialAssociateL (Const a)           = Const (Const a)
+--   existentialAssociateL (Poly psapsbc psbc) = actionProduct (\ps b -> _wB) (existentialAssociateL psapsbc) psbc
 
-  existentialAssociateR :: PowerSeries (PowerSeries a b) c -> PowerSeries a (PowerSeries b c)
-  existentialAssociateR ps = _
+--   existentialAssociateR :: PowerSeries (PowerSeries a b) c -> PowerSeries a (PowerSeries b c)
+--   existentialAssociateR ps = _
