@@ -5,9 +5,8 @@ version:             0.1.0.0
 homepage:            https://github.com/marcosh/existential-optics#readme
 license:             OtherLicense
 author:              Marco Perone
-maintainer:          pasafama@gmail.com
-copyright:           2022 Marco Perone
-category:            Web
+maintainer:          marco.perone@tweag.io
+copyright:           2022 Tweag
 extra-source-files:
 - README.md
 
