@@ -37,10 +37,6 @@ morph (Optic f g) = Optic (f2g . f) (g . g2f)
 (%) :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
 (%) (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
 
--- AFFINE TRAVERSALS
-
-type AffineTraversal = Optic Affine
-
 -- TRAVERSALS
 
 -- instance ExistentiallyAssociative PowerSeries where

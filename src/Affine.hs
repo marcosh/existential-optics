@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 
 module Affine where
@@ -11,3 +12,5 @@ newtype Affine a b = Affine (Either (Fst a) (Snd a, b))
 --
 -- data Affine a b where
 --   Affine :: a ~ (a0, a1) => Either a0 (a1, b) -> Affine a b
+
+type AffineAssociated a b = '(Affine a (Fst b), (Snd a, Snd b))
