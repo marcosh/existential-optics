@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE QuantifiedConstraints #-}
@@ -22,30 +22,21 @@ import TypeTuples
 import Data.Bifunctor
 import Data.Tuple (swap)
 
--- constraints
-import Data.Constraint (Dict)
-
 -- GENERAL OPTICS
 
 data Optic f s t a b = forall c. Optic (s -> f c a) (f c b -> t)
 
+type Optic' f s a = Optic f s s a a
+
+-- CHANGE OPTIC TYPE
+
 morph :: Morph f g => Optic f s t a b -> Optic g s t a b
 morph (Optic f g) = Optic (f2g . f) (g . g2f)
 
-compose :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
-compose (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
+-- COMPOSE OPTICS
 
-(%) :: (ExistentiallyAssociative h, forall x. Functor (h x), Morph f h, Morph g h) => Optic f s t u v -> Optic g u v a b -> Optic h s t a b
-(%) opticF opticG = compose (morph opticF) (morph opticG)
-
--- ISOS
-
-type Iso = Optic ConstOp
-
-type Iso' s a = Iso s s a a
-
-swapped :: Iso' (a, b) (b, a)
-swapped = Optic (ConstOp . swap) (swap. getConstOp)
+(%) :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
+(%) (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
 
 -- LENSES
 
@@ -58,6 +49,18 @@ _1 = Optic swap swap
 
 _2 :: Lens (c, a) (c, b) a b
 _2 = Optic id id
+
+viewL :: Lens s t a b -> s -> a
+viewL (Optic f _) = snd . f
+
+view' :: Morph f (,) => Optic f s t a b -> s -> a
+view' = viewL . morph
+
+overL :: Lens s t a b -> (a -> b) -> s -> t
+overL (Optic f g) h = g . fmap h . f
+
+over :: Morph f (,) => Optic f s t a b -> (a -> b) -> s -> t
+over = overL . morph
 
 -- PRISMS
 
@@ -80,21 +83,6 @@ _Right = Optic id id
 type Grate = Optic (->)
 
 -- AFFINE TRAVERSALS
-
-type AffineAssociated a b = '(Affine a (Fst b), (Snd a, Snd b))
-
-instance ExistentiallyAssociative Affine where
-  type E Affine a b = AffineAssociated a b
-
-  existentialAssociateL :: Affine a (Affine b c) -> Affine (AffineAssociated a b) c
-  existentialAssociateL (Affine (Left a0))                            = Affine (Left (Affine (Left a0)))
-  existentialAssociateL (Affine (Right (a1, Affine (Left b0))))       = Affine (Left (Affine (Right (a1, b0))))
-  existentialAssociateL (Affine (Right (a1, Affine (Right (b1, c))))) = Affine (Right ((a1, b1), c))
-
-  existentialAssociateR :: Affine (AffineAssociated a b) c -> Affine a (Affine b c)
-  existentialAssociateR (Affine (Left (Affine (Left a0))))        = Affine (Left a0)
-  existentialAssociateR (Affine (Left (Affine (Right (a1, b0))))) = Affine (Right (a1, Affine (Left b0)))
-  existentialAssociateR (Affine (Right ((a1, b1), c)))            = Affine (Right (a1, Affine (Right (b1, c))))
 
 type AffineTraversal = Optic Affine
 

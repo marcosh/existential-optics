@@ -5,6 +5,7 @@
 
 module Associativity where
 
+import Affine
 import ConstOp
 
 -- base
@@ -55,3 +56,16 @@ instance ExistentiallyAssociative (->) where
 
   existentialAssociateR :: ((a, b) -> c) -> (a -> (b -> c))
   existentialAssociateR = curry
+
+instance ExistentiallyAssociative Affine where
+  type E Affine a b = AffineAssociated a b
+
+  existentialAssociateL :: Affine a (Affine b c) -> Affine (AffineAssociated a b) c
+  existentialAssociateL (Affine (Left a0))                            = Affine (Left (Affine (Left a0)))
+  existentialAssociateL (Affine (Right (a1, Affine (Left b0))))       = Affine (Left (Affine (Right (a1, b0))))
+  existentialAssociateL (Affine (Right (a1, Affine (Right (b1, c))))) = Affine (Right ((a1, b1), c))
+
+  existentialAssociateR :: Affine (AffineAssociated a b) c -> Affine a (Affine b c)
+  existentialAssociateR (Affine (Left (Affine (Left a0))))        = Affine (Left a0)
+  existentialAssociateR (Affine (Left (Affine (Right (a1, b0))))) = Affine (Right (a1, Affine (Left b0)))
+  existentialAssociateR (Affine (Right ((a1, b1), c)))            = Affine (Right (a1, Affine (Right (b1, c))))
