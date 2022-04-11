@@ -37,22 +37,6 @@ morph (Optic f g) = Optic (f2g . f) (g . g2f)
 (%) :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
 (%) (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
 
--- PRISMS
-
-type Prism = Optic Either
-
-type Prism' s a = Prism s s a a
-
-swapEither :: Either a b -> Either b a
-swapEither (Left a ) = Right a
-swapEither (Right b) = Left b
-
-_Left :: Prism (Either a c) (Either b c) a b
-_Left = Optic swapEither swapEither
-
-_Right :: Prism (Either c a) (Either c b) a b
-_Right = Optic id id
-
 -- GRATES
 
 type Grate = Optic (->)
