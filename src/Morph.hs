@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
@@ -19,6 +20,15 @@ class Morph (f :: k1 -> * -> *) (g :: k2 -> * -> *) where
   type M f g (c :: k1) :: k2
   f2g :: f c a -> g (M f g c) a
   g2f :: g (M f g c) a -> f c a
+
+instance Morph f f where
+  type M f f c = c
+
+  f2g :: f c a -> f c a
+  f2g = id
+
+  g2f :: f c a -> f c a
+  g2f = id
 
 -- ConstOp
 
