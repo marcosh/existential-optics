@@ -20,7 +20,6 @@ import TypeTuples
 
 -- base
 import Data.Bifunctor
-import Data.Tuple (swap)
 
 -- GENERAL OPTICS
 
@@ -37,30 +36,6 @@ morph (Optic f g) = Optic (f2g . f) (g . g2f)
 
 (%) :: (ExistentiallyAssociative f, forall x. Functor (f x)) => Optic f s t u v -> Optic f u v a b -> Optic f s t a b
 (%) (Optic su vt) (Optic ua bv) = Optic (existentialAssociateL . fmap ua . su) (vt . fmap bv . existentialAssociateR)
-
--- LENSES
-
-type Lens = Optic (,)
-
-type Lens' s a = Lens s s a a
-
-_1 :: Lens (a, c) (b, c) a b
-_1 = Optic swap swap
-
-_2 :: Lens (c, a) (c, b) a b
-_2 = Optic id id
-
-viewL :: Lens s t a b -> s -> a
-viewL (Optic f _) = snd . f
-
-view' :: Morph f (,) => Optic f s t a b -> s -> a
-view' = viewL . morph
-
-overL :: Lens s t a b -> (a -> b) -> s -> t
-overL (Optic f g) h = g . fmap h . f
-
-over :: Morph f (,) => Optic f s t a b -> (a -> b) -> s -> t
-over = overL . morph
 
 -- PRISMS
 
