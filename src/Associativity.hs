@@ -1,4 +1,3 @@
-{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
