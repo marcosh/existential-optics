@@ -35,4 +35,4 @@ instance (forall x. Functor (f x), ExistentiallyAssociative f) => Strong f (Insi
   hom (InsideOut (Optic g h)) = InsideOut (Optic (existentialAssociateL . fmap g) (fmap h . existentialAssociateR))
 
 profunctorToExistential :: (forall x. Functor (f x), ExistentiallyAssociative f, ExistentiallyUnital f) => ProOptic f s t a b -> Optic f s t a b
-profunctorToExistential po = insideOut (po (InsideOut (Optic unitorInv unitor)))
+profunctorToExistential po = insideOut (po (InsideOut (Optic unitor unitorInv)))
