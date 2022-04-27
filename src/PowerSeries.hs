@@ -1,23 +1,13 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module PowerSeries where
 
 import TypeTuples
+import Vect
 
--- base
-import GHC.TypeNats
-
--- fixed-vector
-import Data.Vector.Fixed
-import Data.Vector.Fixed.Boxed
-import Data.Vector.Fixed.Cont
-
-data PowerSeries c a where
-  PowerSeries :: Arity (Fst c) => Snd c -> Vec (Fst c) a -> PowerSeries c a
+data PowerSeries c a = forall n. PowerSeries (Snd c) (Vect (Fst c) a)
 
 instance Functor (PowerSeries c) where
   fmap :: (a -> b) -> PowerSeries c a -> PowerSeries c b
-  fmap f (PowerSeries c v) = PowerSeries c (Data.Vector.Fixed.map f v)
+  fmap f (PowerSeries c v) = PowerSeries c (f <$> v)
