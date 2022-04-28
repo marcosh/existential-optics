@@ -43,6 +43,18 @@ bothEither = morph bothEitherTraversal
     reconstruct (PowerSeries True  v) = Left  (v ! 0)
     reconstruct (PowerSeries False v) = Right (v ! 0)
 
+traversedVect :: Morph PowerSeries f => Optic f (Vect n a) (Vect n b) a b
+traversedVect = morph traversedVectTraversal
+  where
+    traversedVectTraversal :: Traversal (Vect n a) (Vect n b) a b
+    traversedVectTraversal = Optic deconstruct reconstruct
+
+    deconstruct :: Vect n a -> PowerSeries '(n, ()) a
+    deconstruct = PowerSeries ()
+
+    reconstruct :: PowerSeries '(n, ()) a -> Vect n a
+    reconstruct (PowerSeries _ v) = v
+
 -- COMMON OPERATIONS
 
 over :: Traversal s t a b -> (a -> b) -> s -> t
